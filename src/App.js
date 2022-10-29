@@ -8,13 +8,20 @@ const GAME_WIDTH = 500;
 const GAME_HEIGHT = 500;
 const GRAVITY = 6;
 const JUMP_HEIGHT = 100;
+const OBSTACLE_WIDTH = 40;
+const OBSTACLE_GAP = 200;
 
 function App() {
   const [birdPosition, setBirdPosition] = useState(250);
+  const [gameHasStarted, setGameHasStarted] = useState(false);
+  const [obstacleHeight, setObstacleHeight] = useState(200);
+  const [obstacleLeft, setObstacleleft] = useState(GAME_WIDTH - OBSTACLE_WIDTH);
+  const [score, setScore] = useState(0);
+  const bottomObsticaleHeight = GAME_HEIGHT - OBSTACLE_GAP - obstacleHeight;
 
   useEffect(() => {
     let timeId;
-    if (birdPosition < GAME_HEIGHT - BIRD_SIZE) {
+    if (gameHasStarted && birdPosition < GAME_HEIGHT - BIRD_SIZE) {
       timeId = setInterval(() => {
         setBirdPosition((birdPosition) => birdPosition + GRAVITY);
       }, 24);
@@ -23,11 +30,38 @@ function App() {
     return () => {
       clearInterval(timeId);
     };
+  }, [birdPosition, gameHasStarted]);
+
+  useEffect(() => {
+    let obstacleId;
+    if (gameHasStarted && obstacleLeft >= -OBSTACLE_WIDTH) {
+      obstacleId = setInterval(() => {
+        setObstacleleft((obstacleLeft) => obstacleLeft - 5);
+      }, 24);
+
+      return () => {
+        clearInterval(obstacleId);
+      };
+    } else {
+      setObstacleleft(GAME_WIDTH - OBSTACLE_WIDTH);
+      setObstacleHeight(
+        Math.floor(Math.random() * (GAME_HEIGHT - OBSTACLE_GAP))
+      );
+    }
+  }, [gameHasStarted, obstacleLeft]);
+
+  useEffect(() => {
+    const hasCollidedWithTopObstacle =
+      birdPosition >= 0 && birdPosition < obstacleHeight;
+    const hasCollidedWithBottomObstacle =
+      birdPosition <= 500 - bottomObsticaleHeight;
   });
 
   const handleClick = () => {
     let newBirdPosition = birdPosition - JUMP_HEIGHT;
-    if (newBirdPosition < 0) {
+    if (!gameHasStarted) {
+      setGameHasStarted(true);
+    } else if (newBirdPosition < 0) {
       setBirdPosition(0);
     } else {
       setBirdPosition(newBirdPosition);
@@ -37,6 +71,18 @@ function App() {
   return (
     <Div onClick={handleClick}>
       <GameBox height={GAME_HEIGHT} width={GAME_WIDTH}>
+        <Obstacle
+          top={0}
+          width={OBSTACLE_WIDTH}
+          height={obstacleHeight}
+          left={obstacleLeft}
+        />
+        <Obstacle
+          top={GAME_HEIGHT - (obstacleHeight + bottomObsticaleHeight)}
+          width={OBSTACLE_WIDTH}
+          height={bottomObsticaleHeight}
+          left={obstacleLeft}
+        />
         <Bird size={BIRD_SIZE} top={birdPosition} />
       </GameBox>
     </Div>
@@ -64,4 +110,14 @@ const GameBox = styled.div`
   height: ${(props) => props.height}px;
   width: ${(props) => props.width}px;
   background-color: blue;
+  overflow: hidden;
+`;
+
+const Obstacle = styled.div`
+  position: relative;
+  top: ${(props) => props.top}px;
+  background-color: green;
+  width: ${(props) => props.width}px;
+  height: ${(props) => props.height}px;
+  left: ${(props) => props.left}px;
 `;
